@@ -1,0 +1,118 @@
+body {
+    margin: 0;
+}
+
+header {
+    width: 100%;
+    background-color: blanchedalmond;
+}
+
+#banner img {
+    width: 100%;
+    border-bottom: solid 3px black;
+}
+
+#menu-container {
+    display: flex;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+    list-style-type: none;
+}
+
+#menu-container li a {
+    padding: 10px 10px 10px 10px;
+    font-size: 20px;
+    text-decoration: none;
+    color: rgb(121, 134, 124);    
+}
+
+#menu-container li a:hover {
+    font-size: 23px;
+    color: black;
+}
+
+#content {
+    margin-left: 40px;
+    padding: 10px;
+    display: flex;
+    justify-content: space-around;
+}
+
+#main-content {
+    width: 62%;
+    font-size: 18px;
+}
+
+#inner-title {
+    padding-top: 30px;
+    padding-bottom: 25px;
+    text-align: center;
+    font-size: 40px;
+}
+
+.img-content-div {
+    color: rgb(121, 121, 121);
+    font-size: 13px;
+}
+
+.img-content-div img {
+    width: 100%;
+    border-radius: 15px;
+}
+
+#side-bar {
+    width: 25%;
+    /* background-color: blanchedalmond; */
+}
+
+#side-bar-title, #activities-div-title {
+    margin-top: 80px;
+    color: rgb(202, 142, 122);
+    font-size: 23px;
+    text-align: center;
+}
+
+.side-bar-section {
+    margin: 30px 25px 50px 25px;
+}
+
+.side-bar-section label {
+    font-size: 20px;
+}
+
+.side-bar-section img  {
+    width: 100%;
+    border-radius: 25px;
+}
+
+.section-separator {
+    border-top: 3px solid #bbb;
+    width: 75%;
+}
+
+#activities-div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-left: 40px;
+    margin-right: 40px;
+}
+
+.activity {
+    margin: 30px 50px 30px 0px;
+    padding: 15px 15px 15px 15px;
+    border-radius: 20px;
+    background-color: burlywood;
+    text-align: center;
+}
+
+.activity img {
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+}
+
+#footer {
+    padding: 50px 50px 50px 50px;
+    background-color: chocolate;
+}
