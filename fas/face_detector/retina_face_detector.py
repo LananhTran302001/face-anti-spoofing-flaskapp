@@ -1,6 +1,6 @@
 import numpy as np
 from retinaface import RetinaFace
-from utils.general import clamp
+from fas.utils.general import clamp
 
 class RetinaFaceDetector:
     """Wrapper class for face detector"""

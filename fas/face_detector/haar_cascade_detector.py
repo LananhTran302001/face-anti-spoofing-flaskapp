@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from utils.general import clamp
+from fas.utils.general import clamp
 
 class HaarCascadeDetector:
     """Wrapper class for face detector"""

@@ -2,7 +2,8 @@ import cv2 as cv
 import numpy as np
 import torch
 import torch.nn as nn
-from utils.model import load_checkpoint
+
+from fas.utils.model import load_checkpoint
 
 class TorchCNN:
     '''Wrapper for torch model'''

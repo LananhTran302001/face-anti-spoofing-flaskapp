@@ -47,7 +47,7 @@ loss = dict(loss_type='amsoftmax',
 epochs = dict(start_epoch=0, max_epoch=70)
 
 model= dict(model_type='Mobilenet3',
-            model_size = 'large',
+            model_size = 'small',
             width_mult = 1.0,
             pretrained=False,
             embeding_dim=1024,

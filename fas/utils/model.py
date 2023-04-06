@@ -4,8 +4,8 @@ import logging
 import time
 import torch
 
-from losses import (AMSoftmaxLoss, AngleSimpleLinear, SoftTripleLinear, SoftTripleLoss)
-from models import mobilenetv2, mobilenetv3_large, mobilenetv3_small
+from fas.losses import (AMSoftmaxLoss, AngleSimpleLinear, SoftTripleLinear, SoftTripleLoss)
+from fas.models import mobilenetv2, mobilenetv3_large, mobilenetv3_small
 
 
 def save_checkpoint(state, filename="my_model.pth.tar"):
