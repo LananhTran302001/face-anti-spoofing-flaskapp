@@ -8,8 +8,10 @@ from flask import (
     session,
     redirect,
     send_file,
-    url_for
+    url_for,
 )
+from fas.inferer import face_detector, fas_model, infer_img, infer_video
+
 # from fas.inferer import face_detector, fas_model, infer_img, infer_video
 
 app = Flask(__name__, template_folder="template", static_folder="static")
@@ -32,9 +34,14 @@ app.config["OUTPUT_FOLDER"] = "static/output"
 FACE_DETECTORS = ["haar cascade", "retina face"]
 FAS_MODELS = ["large", "small", "large075", "small075"]
 
-global cap, fd, fas
+global cap, fd, fas, cam_on
+
+cam_on = True
 cap = cv2.VideoCapture(0)
 
+
+def get_media_file(filename):
+    return os.path.join(app.config["UPLOAD_FOLDER"], filename)
 
 def is_image(file_path):
     extension = file_path.split(".")[-1].lower()
@@ -60,48 +67,52 @@ def generate_frames():
 
 @app.route("/")
 def index():
-    return render_template(
-        "home.html"
-    )
+    return render_template("home.html",
+                           face_detectors=FACE_DETECTORS,
+                           fas_models=FAS_MODELS,)
 
 
-@app.route("/", methods=["POST", "GET"])
+@app.route("/", methods=["POST"])
 def goto():
     if request.form.get("upload") == "Upload":
         return redirect(url_for("upload"))
     elif request.form.get("camera") == "Camera":
-        return redirect(url_for("stream"))
+        return redirect(url_for("camera"))
     return redirect(url_for("index"))
+
 
 @app.route("/back", methods=["GET"])
 def backtohome():
+    global cap, cam_on
+    cap.release()
+    cam_on = False
     return redirect(url_for("index"))
 
 
 @app.route("/upload", methods=["POST", "GET"])
-def upload_file():
+def upload():
     if request.method == "POST":
         input_file = request.files["input_file"]
 
         if is_image(input_file.filename):
-            path = os.path.join(app.config["UPLOAD_FOLDER"], input_file.filename)
+            path = get_media_file(input_file.filename)
             input_file.save(path)
             session["uploaded_img_path"] = path
             return render_template(
                 "upload_file.html",
                 iimg=path,
                 face_detectors=FACE_DETECTORS,
-                fas_models=FAS_MODELS
+                fas_models=FAS_MODELS,
             )
         elif is_video(input_file.filename):
-            path = os.path.join(app.config["UPLOAD_FOLDER"], input_file.filename)
+            path = get_media_file(input_file.filename)
             input_file.save(path)
             session["uploaded_img_path"] = path
             return render_template(
                 "upload_file.html",
                 ivideo=path,
                 face_detectors=FACE_DETECTORS,
-                fas_models=FAS_MODELS
+                fas_models=FAS_MODELS,
             )
         else:
             msg = "Your upload file must be an image or a video"
@@ -109,24 +120,106 @@ def upload_file():
                 "upload_file.html",
                 face_detectors=FACE_DETECTORS,
                 fas_models=FAS_MODELS,
-                message=msg
+                message=msg,
             )
+    return render_template("upload_file.html",
+                           face_detectors=FACE_DETECTORS,
+                           fas_models=FAS_MODELS,)
 
-    return render_template("upload_file.html")
 
-
-
-
-@app.route("/stream", methods=["POST", "GET"])
-def stream():
-    if request.method == "POST":
-        return render_template("camera.html")
-    else:
-        global cap
+@app.route("/camera")
+def camera():
+    global cap, cam_on
+    if not cam_on:
+        cam_on = True
         cap = cv2.VideoCapture(0)
-        return Response(
+    return render_template("camera.html",
+                           face_detectors=FACE_DETECTORS,
+                           fas_models=FAS_MODELS,)
+
+
+@app.route("/stream", methods=["GET"])
+def stream():
+    return Response(
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
-if __name__ == '__main__':  
-   app.run()
+@app.route("/submit", methods=["POST", "GET"])
+def submit():
+    global fd, fas
+    if request.method == "POST":
+        if request.form.get("submit") == "Submit":
+            if session["fas_model"] != request.form.get("fas-model-btn"):
+                session["fas_model"] = request.form.get("fas-model-btn")
+                fas = fas_model(session["fas_model"])
+
+            if session["face_detector"] != request.form.get("face-detector-btn"):
+                session["face_detector"] = request.form.get("face-detector-btn")
+                fd = face_detector(session["face_detector"])
+
+            output_path = os.path.join(
+                app.config["OUTPUT_FOLDER"],
+                os.path.basename(session["uploaded_img_path"]),
+            )
+
+            if is_image(session["uploaded_img_path"]):
+                infer_img(
+                    spoof_model=fas,
+                    face_detector=fd,
+                    img_path=session["uploaded_img_path"],
+                    save_path=output_path,
+                )
+                session["last_output_img"] = output_path
+                return render_template(
+                    "upload_file.html",
+                    face_detectors=FACE_DETECTORS,
+                    fas_models=FAS_MODELS,
+                    iimg=session["uploaded_img_path"],
+                    oimg=session["last_output_img"],
+                    selected_face_detector=session["face_detector"],
+                    selected_fas_model=session["fas_model"],
+                )
+
+            elif is_video(session["uploaded_img_path"]):
+                infer_video(
+                    spoof_model=fas,
+                    face_detector=fd,
+                    vid_path=session["uploaded_img_path"],
+                    save_path=output_path,
+                )
+                session["last_output_img"] = output_path
+                return render_template(
+                    "upload_file.html",
+                    face_detectors=FACE_DETECTORS,
+                    fas_models=FAS_MODELS,
+                    ivideo=session["uploaded_img_path"],
+                    ovideo=session["last_output_img"],
+                    selected_face_detector=session["face_detector"],
+                    selected_fas_model=session["fas_model"],
+                )
+            else:
+                return render_template(
+                    "upload_file.html",
+                    face_detectors=FACE_DETECTORS,
+                    fas_models=FAS_MODELS,
+                    iimg=session["uploaded_img_path"],
+                    oimg=session["last_output_img"],
+                    selected_face_detector=session["face_detector"],
+                    selected_fas_model=session["fas_model"],
+                )
+        # elif request.form.get("start") == "Start":
+
+        elif request.form.get("stop") == "Stop":
+            cap.release()
+            cv2.destroyAllWindows()
+
+    return redirect("/")
+
+
+@app.route("/download", methods=["GET"])
+def download():
+    return send_file(session["last_output_img"], as_attachment=True)
+
+
+if __name__ == "__main__":
+    app.run()
