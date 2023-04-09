@@ -1,6 +1,6 @@
 import cv2 as cv
 from fas.utils.general import read_py_config
-from fas.utils.model import build_model
+from fas.utils.model import build_model, time_synchronized
 from fas.utils.torchcnn import TorchCNN
 
 from fas.face_detector.haar_cascade_detector import HaarCascadeDetector
@@ -11,12 +11,10 @@ LWFAS = {
         "config": "fas/configs/celeba-intra/large.py",
         "weights": "fas/weights/MobileNet3_large.pth.tar",
     },
-    "large075": {"config": "fas/configs/celeba-intra/large_075.py"},
     "small": {
         "config": "fas/configs/celeba-intra/small.py",
         "weights": "fas/weights/MobileNet3_small.pth.tar",
     },
-    "small_075": {"config": "fas/configs/celeba-intra/small_075.py"},
 }
 
 
@@ -79,20 +77,39 @@ def draw_detections(frame, detections, confidence, thresh, show_conf=False):
 
 
 def infer_img(spoof_model, face_detector, img_path, save_path):
+
+    fd_time = 0.0  
+    fas_time = 0.0
+
     # read image
     img = cv.imread(img_path)
 
     # Detect faces in image
+    t = time_synchronized()
     faces = face_detector.get_detections(img)
+    fd_time += time_synchronized() - t
 
     # Detect presentation attack
+    t = time_synchronized()
     spoof_conf = pred_spoof(img, faces, spoof_model)
+    fas_time += time_synchronized() - t
 
     # draw rectange bounding faces
     out_img = draw_detections(img, faces, spoof_conf, 0.7, show_conf=True)
 
     # save output image
     cv.imwrite(save_path, out_img)
+
+    # return time of face-detection and spoof-detection
+    fd_time = round(fd_time * 1E3, 1)
+    fas_time = round(fas_time * 1E3, 1)
+    return fd_time, fas_time
+
+
+def infer_frame(spoof_model, face_detector, frame):
+    faces = face_detector.get_detections(frame)
+    spoof_conf = pred_spoof(frame, faces, spoof_model)
+    return draw_detections(frame, faces, spoof_conf, 0.7, show_conf=True)
 
 
 def infer_video(spoof_model, face_detector, vid_path, save_path):
@@ -108,8 +125,8 @@ def infer_video(spoof_model, face_detector, vid_path, save_path):
     vid_writer = cv.VideoWriter(save_path, cv.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
 
     # infer each frame in video
-    while vid.isOpened():
-        _, frame = vid.read()
+    success, frame = vid.read()
+    while success():
 
         # Detect faces in image
         faces = face_detector.get_detections(frame)
@@ -120,4 +137,10 @@ def infer_video(spoof_model, face_detector, vid_path, save_path):
         # draw rectange bounding faces
         output_frame = draw_detections(frame, faces, spoof_conf, 0.7, show_conf=True)
         vid_writer.write(output_frame)
+
+        # read the next frame
+        success, frame = vid.read()
+    
+    # close the video writer
+    vid_writer.release()
 

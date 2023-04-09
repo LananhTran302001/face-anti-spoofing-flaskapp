@@ -37,7 +37,7 @@
         {% endif %}
 
         <!-- Model controller -->
-        <form class="row mt-2 justify-content-around m-3 d-flex flex-wrap" action="/camera" method="post">
+        <form class="row mt-2 justify-content-around m-3 d-flex flex-wrap" action="/phonecamera" method="post">
             <div class="col-xl-5 col-md-10">
                 <div class="row">
                     <span class="w-25">Face detector:</span>
@@ -68,9 +68,15 @@
             </div>
             <div class="row w-100 m-4 justify-content-center">
                 {% if cam_on %}
-                <input id="stop-btn" class="btn btn-warning" type="submit" name="stop" value="Stop">
+                <span>IP address: {{cam_ip}}</span>
+                <input id="stop-btn" class="btn btn-warning m-3" type="submit" name="stop" value="Stop">
                 {% else %}
-                <input id="start-btn" class="btn btn-success" type="submit" name="start" value="Start">
+                <div class="input-group w-50">
+                    <input type="text" class="form-control" placeholder="IP address" aria-label="Phone camera's IP address" name="cam_ip">
+                    <div class="input-group-append">
+                        <input id="start-btn" class="btn btn-success m-3" type="submit" name="start" value="Start">
+                    </div>
+                </div>
                 {% endif %}
             </div>
         </form>

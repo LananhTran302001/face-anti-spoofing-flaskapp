@@ -10,7 +10,7 @@ from flask import (
     send_file,
     url_for,
 )
-from fas.inferer import face_detector, fas_model, infer_img, infer_video
+from fas.inferer import face_detector, fas_model, infer_img, infer_video, infer_frame
 
 # from fas.inferer import face_detector, fas_model, infer_img, infer_video
 
@@ -32,16 +32,19 @@ app.config["UPLOAD_VID_EXT"] = ["mp4", "mov", "avi", "mkv"]
 app.config["OUTPUT_FOLDER"] = "static/output"
 
 FACE_DETECTORS = ["haar cascade", "retina face"]
-FAS_MODELS = ["large", "small", "large075", "small075"]
+FAS_MODELS = ["large", "small"]
 
 global cap, fd, fas, cam_on
 
-cam_on = True
-cap = cv2.VideoCapture(0)
+cam_on = False
+cap = None
+fd = None
+fas = None
 
 
 def get_media_file(filename):
     return os.path.join(app.config["UPLOAD_FOLDER"], filename)
+
 
 def is_image(file_path):
     extension = file_path.split(".")[-1].lower()
@@ -53,23 +56,95 @@ def is_video(file_path):
     return extension in app.config["UPLOAD_VID_EXT"]
 
 
+def render_upload(
+    html="upload_file.html",
+    iimg=None,
+    oimg=None,
+    ivideo=None,
+    ovideo=None,
+    face_detectors=FACE_DETECTORS,
+    fas_models=FAS_MODELS,
+    selected_face_detector=FACE_DETECTORS[0],
+    selected_fas_model=FAS_MODELS[0],
+    fd_time=None,
+    fas_time=None,
+    noti=None,
+):
+    return render_template(
+        html,
+        iimg=iimg,
+        oimg=oimg,
+        ivideo=ivideo,
+        ovideo=ovideo,
+        face_detectors=face_detectors,
+        fas_models=fas_models,
+        selected_face_detector=selected_face_detector,
+        selected_fas_model=selected_fas_model,
+        fd_time=fd_time,
+        fas_time=fas_time,
+        noti=noti,
+    )
+
+
+def render_camera(
+    html="camera.html",
+    face_detectors=FACE_DETECTORS,
+    fas_models=FAS_MODELS,
+    selected_face_detector=FACE_DETECTORS[0],
+    selected_fas_model=FAS_MODELS[0],
+):
+    global cam_on
+    return render_template(
+        html,
+        cam_on=cam_on,
+        face_detectors=face_detectors,
+        fas_models=fas_models,
+        selected_face_detector=selected_face_detector,
+        selected_fas_model=selected_fas_model,
+    )
+
+
+def render_phone_camera(
+    html="phone_camera.html",
+    face_detectors=FACE_DETECTORS,
+    fas_models=FAS_MODELS,
+    selected_face_detector=FACE_DETECTORS[0],
+    selected_fas_model=FAS_MODELS[0],
+):
+    return render_template(
+        html,
+        cam_on=cam_on,
+        face_detectors=face_detectors,
+        fas_models=fas_models,
+        selected_face_detector=selected_face_detector,
+        selected_fas_model=selected_fas_model,
+    )
+
+
 def generate_frames():
+    global fd, fas
     while True:
         ## read the camera frame
         success, frame = cap.read()
         if not success:
             break
         else:
-            _, buffer = cv2.imencode(".jpg", frame)
-            frame = buffer.tobytes()
-        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+            # detect spoofing face
+            out_frame = infer_frame(spoof_model=fas, face_detector=fd, frame=frame)
+            _, buffer = cv2.imencode(".jpg", out_frame)
+            out_frame = buffer.tobytes()
+        yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + out_frame + b"\r\n")
 
 
 @app.route("/")
 def index():
-    return render_template("home.html",
-                           face_detectors=FACE_DETECTORS,
-                           fas_models=FAS_MODELS,)
+    session["fas_model"] = FAS_MODELS[0]
+    session["face_detector"] = FACE_DETECTORS[0]
+    return render_template(
+        "home.html",
+        face_detectors=FACE_DETECTORS,
+        fas_models=FAS_MODELS,
+    )
 
 
 @app.route("/", methods=["POST"])
@@ -78,14 +153,17 @@ def goto():
         return redirect(url_for("upload"))
     elif request.form.get("camera") == "Camera":
         return redirect(url_for("camera"))
+    elif request.form.get("mobile-phone-camera") == "Mobile phone camera":
+        return redirect(url_for("phonecamera"))
     return redirect(url_for("index"))
 
 
 @app.route("/back", methods=["GET"])
 def backtohome():
     global cap, cam_on
-    cap.release()
-    cam_on = False
+    if cam_on:
+        cap.release()
+        cam_on = False
     return redirect(url_for("index"))
 
 
@@ -98,44 +176,59 @@ def upload():
             path = get_media_file(input_file.filename)
             input_file.save(path)
             session["uploaded_img_path"] = path
-            return render_template(
-                "upload_file.html",
-                iimg=path,
-                face_detectors=FACE_DETECTORS,
-                fas_models=FAS_MODELS,
-            )
+            return render_upload(iimg=path)
+
         elif is_video(input_file.filename):
             path = get_media_file(input_file.filename)
             input_file.save(path)
             session["uploaded_img_path"] = path
-            return render_template(
-                "upload_file.html",
-                ivideo=path,
-                face_detectors=FACE_DETECTORS,
-                fas_models=FAS_MODELS,
-            )
+            return render_upload(ivideo=path)
+
         else:
-            msg = "Your upload file must be an image or a video"
-            return render_template(
-                "upload_file.html",
-                face_detectors=FACE_DETECTORS,
-                fas_models=FAS_MODELS,
-                message=msg,
-            )
-    return render_template("upload_file.html",
-                           face_detectors=FACE_DETECTORS,
-                           fas_models=FAS_MODELS,)
+            return render_upload(noti="Please upload image or video file")
+
+    return render_upload()
 
 
-@app.route("/camera")
+@app.route("/camera", methods=["GET", "POST"])
 def camera():
     global cap, cam_on
-    if not cam_on:
+    if request.method == "GET":
+        if cam_on:
+            cap.release()
+            cam_on = False
+    else:
+        if request.form.get("start") == "Start":
+            if (session["fas_model"] != request.form.get("fas-model-btn")) or not fas:
+                session["fas_model"] = request.form.get("fas-model-btn")
+                fas = fas_model(session["fas_model"])
+            if (
+                session["face_detector"] != request.form.get("face-detector-btn")
+            ) or not fd:
+                session["face_detector"] = request.form.get("face-detector-btn")
+                fd = face_detector(session["face_detector"])
+            cam_on = True
+            cap = cv2.VideoCapture(0)
+
+        elif request.form.get("stop") == "Stop":
+            cap.release()
+            cam_on = False
+
+    return render_camera()
+
+
+@app.route("/phonecamera", methods=["GET", "POST"])
+def phonecamera():
+    global cap, cam_on
+    if request.method == "GET":
+        if cam_on:
+            cap.release()
+            cam_on = False
+    else:
+        cam_ip = request.form.get("cam_ip")
+        cap = cv2.VideoCapture("http://" + cam_ip + "/video")
         cam_on = True
-        cap = cv2.VideoCapture(0)
-    return render_template("camera.html",
-                           face_detectors=FACE_DETECTORS,
-                           fas_models=FAS_MODELS,)
+    return render_phone_camera()
 
 
 @app.route("/stream", methods=["GET"])
@@ -144,74 +237,66 @@ def stream():
         generate_frames(), mimetype="multipart/x-mixed-replace; boundary=frame"
     )
 
+
+@app.route("/")
 @app.route("/submit", methods=["POST", "GET"])
 def submit():
     global fd, fas
     if request.method == "POST":
-        if request.form.get("submit") == "Submit":
-            if session["fas_model"] != request.form.get("fas-model-btn"):
-                session["fas_model"] = request.form.get("fas-model-btn")
-                fas = fas_model(session["fas_model"])
+        if (session["fas_model"] != request.form.get("fas-model-btn")) or not fas:
+            session["fas_model"] = request.form.get("fas-model-btn")
+            fas = fas_model(session["fas_model"])
 
-            if session["face_detector"] != request.form.get("face-detector-btn"):
-                session["face_detector"] = request.form.get("face-detector-btn")
-                fd = face_detector(session["face_detector"])
+        if (
+            session["face_detector"] != request.form.get("face-detector-btn")
+        ) or not fd:
+            session["face_detector"] = request.form.get("face-detector-btn")
+            fd = face_detector(session["face_detector"])
 
-            output_path = os.path.join(
-                app.config["OUTPUT_FOLDER"],
-                os.path.basename(session["uploaded_img_path"]),
+        output_path = os.path.join(
+            app.config["OUTPUT_FOLDER"],
+            os.path.basename(session["uploaded_img_path"]),
+        )
+
+        if is_image(session["uploaded_img_path"]):
+            fd_time, fas_time = infer_img(
+                spoof_model=fas,
+                face_detector=fd,
+                img_path=session["uploaded_img_path"],
+                save_path=output_path,
+            )
+            session["last_output_img"] = output_path
+            return render_upload(
+                selected_face_detector=session["face_detector"],
+                selected_fas_model=session["fas_model"],
+                iimg=session["uploaded_img_path"],
+                oimg=session["last_output_img"],
+                fd_time=fd_time,
+                fas_time=fas_time,
             )
 
-            if is_image(session["uploaded_img_path"]):
-                infer_img(
-                    spoof_model=fas,
-                    face_detector=fd,
-                    img_path=session["uploaded_img_path"],
-                    save_path=output_path,
-                )
-                session["last_output_img"] = output_path
-                return render_template(
-                    "upload_file.html",
-                    face_detectors=FACE_DETECTORS,
-                    fas_models=FAS_MODELS,
-                    iimg=session["uploaded_img_path"],
-                    oimg=session["last_output_img"],
-                    selected_face_detector=session["face_detector"],
-                    selected_fas_model=session["fas_model"],
-                )
-
-            elif is_video(session["uploaded_img_path"]):
-                infer_video(
-                    spoof_model=fas,
-                    face_detector=fd,
-                    vid_path=session["uploaded_img_path"],
-                    save_path=output_path,
-                )
-                session["last_output_img"] = output_path
-                return render_template(
-                    "upload_file.html",
-                    face_detectors=FACE_DETECTORS,
-                    fas_models=FAS_MODELS,
-                    ivideo=session["uploaded_img_path"],
-                    ovideo=session["last_output_img"],
-                    selected_face_detector=session["face_detector"],
-                    selected_fas_model=session["fas_model"],
-                )
-            else:
-                return render_template(
-                    "upload_file.html",
-                    face_detectors=FACE_DETECTORS,
-                    fas_models=FAS_MODELS,
-                    iimg=session["uploaded_img_path"],
-                    oimg=session["last_output_img"],
-                    selected_face_detector=session["face_detector"],
-                    selected_fas_model=session["fas_model"],
-                )
+        elif is_video(session["uploaded_img_path"]):
+            infer_video(
+                spoof_model=fas,
+                face_detector=fd,
+                vid_path=session["uploaded_img_path"],
+                save_path=output_path,
+            )
+            session["last_output_img"] = output_path
+            return render_upload(
+                ivideo=session["uploaded_img_path"],
+                ovideo=session["last_output_img"],
+                selected_face_detector=session["face_detector"],
+                selected_fas_model=session["fas_model"],
+            )
+        else:
+            return render_upload(
+                iimg=session["uploaded_img_path"],
+                oimg=session["last_output_img"],
+                selected_face_detector=session["face_detector"],
+                selected_fas_model=session["fas_model"],
+            )
         # elif request.form.get("start") == "Start":
-
-        elif request.form.get("stop") == "Stop":
-            cap.release()
-            cv2.destroyAllWindows()
 
     return redirect("/")
 

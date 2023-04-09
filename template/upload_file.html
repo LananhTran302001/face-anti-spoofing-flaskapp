@@ -22,7 +22,7 @@
 
 
         <!-- Notification -->
-        {% if message %}
+        {% if noti %}
         <div aria-live="polite" aria-atomic="true" style="position: relative; min-height: 80px;">
             <div class="toast" style="position: absolute; top: 0; right: 0;">
                 <div class="toast-header">
@@ -32,7 +32,7 @@
                     </button>
                 </div>
                 <div class="toast-body">
-                    {{message}}
+                    {{noti}}
                 </div>
             </div>
         </div>
@@ -68,6 +68,7 @@
 
                 <!-- Model controller -->
                 <form class="container justify-content-center" action="/submit" method="POST">
+                <!-- <form class="container justify-content-center"> -->
                     <!-- Chose face detector -->
                     <div class="row mt-3">
                         <span class="w-25">Face detector:</span>
@@ -96,7 +97,7 @@
                     </div>
                     <!-- Submit button -->
                     <div class="row mt-4">
-                        <input class="btn btn-primary w-100" type="submit" name="submit" value="Submit">
+                        <input id="submit-btn" class="btn btn-primary w-100" type="submit" name="submit" value="Submit">
                     </div>
                 </form>
             </div>
@@ -105,9 +106,10 @@
             <div class="mt-4 col-xl-6 col-md-10 justify-content-center">
                 <label>Output image / video</label>
                 <!-- Image -->
-                <div class="card w-100 mt-2 mb-2 p-1"
+                <div class="card w-100 mt-2 mb-2 p-1 justify-content-center"
                     style="height: 280px; background-color: rgba(185, 194, 197, 0.55);">
                     {% if oimg %}
+                    <img src="../static/image/loading.gif" id="loader" style='display: none;'>
                     <img src="{{oimg}}" class="img-fluid" style="max-height:100%; max-width:100%; object-fit: contain;">
                     {% elif ovideo %}
                     <video width="320" height="240" style="max-height:100%; max-width:100%; object-fit: contain;"
@@ -116,6 +118,14 @@
                     </video>
                     {% endif %}
                 </div>
+                
+                {% if fd_time %}
+                <span>Face detection time: {{fd_time}} ms</span>
+                <br>
+                {% endif %}
+                {% if fas_time %}
+                <span>Spoof detection time: {{fd_time}} ms</span>
+                {% endif %}
 
                 <!-- Download button -->
                 <form class="container justify-content-center" action="/download" method="GET">
@@ -125,11 +135,6 @@
                 </form>
             </div>
         </div>
-        <img class="loading" src="static/image/loading.gif" style="position: fixed;
-        top: 100px;
-        bottom: 0;
-        left: 100px;
-        right: 100px;;">
     </div>
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
@@ -141,6 +146,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
+    <script src="static/js/script.js"></script>
 </body>
 
 </html>
