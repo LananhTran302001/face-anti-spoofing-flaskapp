@@ -68,7 +68,7 @@ def render_upload(
     selected_fas_model=FAS_MODELS[0],
     fd_time=None,
     fas_time=None,
-    noti=None,
+    noti=None
 ):
     return render_template(
         html,
@@ -82,7 +82,7 @@ def render_upload(
         selected_fas_model=selected_fas_model,
         fd_time=fd_time,
         fas_time=fas_time,
-        noti=noti,
+        noti=noti
     )
 
 
@@ -92,6 +92,7 @@ def render_camera(
     fas_models=FAS_MODELS,
     selected_face_detector=FACE_DETECTORS[0],
     selected_fas_model=FAS_MODELS[0],
+    noti=None
 ):
     global cam_on
     return render_template(
@@ -101,23 +102,29 @@ def render_camera(
         fas_models=fas_models,
         selected_face_detector=selected_face_detector,
         selected_fas_model=selected_fas_model,
+        noti = noti
     )
 
 
-def render_phone_camera(
+def render_phonecamera(
     html="phone_camera.html",
+    cam_ip=None,
     face_detectors=FACE_DETECTORS,
     fas_models=FAS_MODELS,
     selected_face_detector=FACE_DETECTORS[0],
     selected_fas_model=FAS_MODELS[0],
+    noti=None
 ):
+    global cam_on
     return render_template(
         html,
         cam_on=cam_on,
+        cam_ip=cam_ip,
         face_detectors=face_detectors,
         fas_models=fas_models,
         selected_face_detector=selected_face_detector,
         selected_fas_model=selected_fas_model,
+        noti = noti
     )
 
 
@@ -127,6 +134,7 @@ def generate_frames():
         ## read the camera frame
         success, frame = cap.read()
         if not success:
+            print("Not success")
             break
         else:
             # detect spoofing face
@@ -192,19 +200,21 @@ def upload():
 
 @app.route("/camera", methods=["GET", "POST"])
 def camera():
-    global cap, cam_on
+    global cap, cam_on, fas, fd
     if request.method == "GET":
+        session["fas_model"] = FAS_MODELS[0]
+        session["face_detector"] = FACE_DETECTORS[0]
         if cam_on:
             cap.release()
             cam_on = False
     else:
         if request.form.get("start") == "Start":
-            if (session["fas_model"] != request.form.get("fas-model-btn")) or not fas:
+            if (not fas) or (session["fas_model"] != request.form.get("fas-model-btn")):
                 session["fas_model"] = request.form.get("fas-model-btn")
                 fas = fas_model(session["fas_model"])
-            if (
+            if (not fd) or (
                 session["face_detector"] != request.form.get("face-detector-btn")
-            ) or not fd:
+            ):
                 session["face_detector"] = request.form.get("face-detector-btn")
                 fd = face_detector(session["face_detector"])
             cam_on = True
@@ -219,16 +229,33 @@ def camera():
 
 @app.route("/phonecamera", methods=["GET", "POST"])
 def phonecamera():
-    global cap, cam_on
+    global cap, cam_on, fd, fas
     if request.method == "GET":
+        session["fas_model"] = FAS_MODELS[0]
+        session["face_detector"] = FACE_DETECTORS[0]
         if cam_on:
             cap.release()
             cam_on = False
     else:
-        cam_ip = request.form.get("cam_ip")
-        cap = cv2.VideoCapture("http://" + cam_ip + "/video")
-        cam_on = True
-    return render_phone_camera()
+        if request.form.get("start") == "Start":
+            if (not fas) or (session["fas_model"] != request.form.get("fas-model-btn")):
+                session["fas_model"] = request.form.get("fas-model-btn")
+                fas = fas_model(session["fas_model"])
+            if (not fd) or (
+                session["face_detector"] != request.form.get("face-detector-btn")
+            ):
+                session["face_detector"] = request.form.get("face-detector-btn")
+                fd = face_detector(session["face_detector"])
+
+            cam_ip = request.form.get("cam_ip")
+            cap = cv2.VideoCapture("http://" + cam_ip + "/video")
+            cam_on = True
+            return render_phonecamera(cam_ip=cam_ip)
+
+        elif request.form.get("stop") == "Stop":
+            cap.release()
+            cam_on = False
+    return render_phonecamera()
 
 
 @app.route("/stream", methods=["GET"])
@@ -238,21 +265,19 @@ def stream():
     )
 
 
-@app.route("/")
 @app.route("/submit", methods=["POST", "GET"])
 def submit():
     global fd, fas
     if request.method == "POST":
-        if (session["fas_model"] != request.form.get("fas-model-btn")) or not fas:
+        if (not fas) or (session["fas_model"] != request.form.get("fas-model-btn")):
             session["fas_model"] = request.form.get("fas-model-btn")
             fas = fas_model(session["fas_model"])
-
-        if (
+        if (not fd) or (
             session["face_detector"] != request.form.get("face-detector-btn")
-        ) or not fd:
+        ):
             session["face_detector"] = request.form.get("face-detector-btn")
             fd = face_detector(session["face_detector"])
-
+        
         output_path = os.path.join(
             app.config["OUTPUT_FOLDER"],
             os.path.basename(session["uploaded_img_path"]),

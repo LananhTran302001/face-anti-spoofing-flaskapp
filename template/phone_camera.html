@@ -55,7 +55,7 @@
             <div class="col-xl-6 col-md-10">
                 <div class="row">
                     <span class="w-25">Spoof detector:</span>
-                    <select class="form-select w-50" name="face-detector-btn">
+                    <select class="form-select w-50" name="fas-model-btn">
                         {% for o in fas_models %}
                         {% if o == selected_fas_model %}
                         <option value="{{o}}" selected>{{o}}</option>
@@ -66,15 +66,16 @@
                     </select>
                 </div>
             </div>
-            <div class="row w-100 m-4 justify-content-center">
+            <div class="row w-100 m-4 justify-content-around">
                 {% if cam_on %}
-                <span>IP address: {{cam_ip}}</span>
-                <input id="stop-btn" class="btn btn-warning m-3" type="submit" name="stop" value="Stop">
+                <span>Camera IP address: {{cam_ip}}</span>
+                <input class="btn btn-warning" type="submit" name="stop" value="Stop">
                 {% else %}
                 <div class="input-group w-50">
-                    <input type="text" class="form-control" placeholder="IP address" aria-label="Phone camera's IP address" name="cam_ip">
+                    <input type="text" class="form-control" placeholder="IP address" aria-label="Phone camera's IP address" name="cam_ip" aria-describedby="basic-addon2">
                     <div class="input-group-append">
-                        <input id="start-btn" class="btn btn-success m-3" type="submit" name="start" value="Start">
+                        <!-- <button class="btn btn-success m-3" type="submit" name="start">Start</button> -->
+                        <input class="btn btn-success" type="submit" name="start" value="Start">
                     </div>
                 </div>
                 {% endif %}

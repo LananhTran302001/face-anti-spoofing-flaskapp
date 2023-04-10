@@ -97,7 +97,7 @@
                     </div>
                     <!-- Submit button -->
                     <div class="row mt-4">
-                        <input id="submit-btn" class="btn btn-primary w-100" type="submit" name="submit" value="Submit">
+                        <input class="btn btn-primary w-100" type="submit" name="submit" value="Submit">
                     </div>
                 </form>
             </div>
@@ -109,7 +109,6 @@
                 <div class="card w-100 mt-2 mb-2 p-1 justify-content-center"
                     style="height: 280px; background-color: rgba(185, 194, 197, 0.55);">
                     {% if oimg %}
-                    <img src="../static/image/loading.gif" id="loader" style='display: none;'>
                     <img src="{{oimg}}" class="img-fluid" style="max-height:100%; max-width:100%; object-fit: contain;">
                     {% elif ovideo %}
                     <video width="320" height="240" style="max-height:100%; max-width:100%; object-fit: contain;"
@@ -146,7 +145,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
-    <script src="static/js/script.js"></script>
 </body>
 
 </html>

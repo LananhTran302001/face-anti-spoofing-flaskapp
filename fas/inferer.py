@@ -27,6 +27,7 @@ def face_detector(type="haar cascade"):
 
 
 def fas_model(type="large"):
+    print("load model ", type)
     device = "cuda:0"
     config = read_py_config(LWFAS[type]["config"])
     weights = LWFAS[type]["weights"]
