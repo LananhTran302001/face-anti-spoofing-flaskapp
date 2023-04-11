@@ -248,7 +248,7 @@ def phonecamera():
                 fd = face_detector(session["face_detector"])
 
             cam_ip = request.form.get("cam_ip")
-            cap = cv2.VideoCapture("http://" + cam_ip + "/video")
+            cap = cv2.VideoCapture("https://" + cam_ip + "/video")
             cam_on = True
             return render_phonecamera(cam_ip=cam_ip)
 

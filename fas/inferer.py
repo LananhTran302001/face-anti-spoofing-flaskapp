@@ -127,7 +127,7 @@ def infer_video(spoof_model, face_detector, vid_path, save_path):
 
     # infer each frame in video
     success, frame = vid.read()
-    while success():
+    while success:
 
         # Detect faces in image
         faces = face_detector.get_detections(frame)
