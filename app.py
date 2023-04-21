@@ -32,7 +32,7 @@ app.config["UPLOAD_VID_EXT"] = ["mp4", "mov", "avi", "mkv"]
 app.config["OUTPUT_FOLDER"] = "static/output"
 
 FACE_DETECTORS = ["haar cascade", "retina face"]
-FAS_MODELS = ["large", "small"]
+FAS_MODELS = ["large", "small", "large_rf-f12", "large_rf-f12-e2"]
 
 global cap, fd, fas, cam_on
 
