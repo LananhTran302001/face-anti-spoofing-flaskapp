@@ -207,6 +207,7 @@ def camera():
         if cam_on:
             cap.release()
             cam_on = False
+        return render_camera()
     else:
         if request.form.get("start") == "Start":
             if (not fas) or (session["fas_model"] != request.form.get("fas-model-btn")):
@@ -223,8 +224,8 @@ def camera():
         elif request.form.get("stop") == "Stop":
             cap.release()
             cam_on = False
-
-    return render_camera()
+        return render_camera(selected_face_detector=session["face_detector"],
+                             selected_fas_model=session["fas_model"])
 
 
 @app.route("/phonecamera", methods=["GET", "POST"])
@@ -236,6 +237,7 @@ def phonecamera():
         if cam_on:
             cap.release()
             cam_on = False
+        return render_phonecamera()
     else:
         if request.form.get("start") == "Start":
             if (not fas) or (session["fas_model"] != request.form.get("fas-model-btn")):
@@ -250,12 +252,16 @@ def phonecamera():
             cam_ip = request.form.get("cam_ip")
             cap = cv2.VideoCapture("https://" + cam_ip + "/video")
             cam_on = True
-            return render_phonecamera(cam_ip=cam_ip)
+            return render_phonecamera(cam_ip=cam_ip,
+                                      selected_face_detector=session["face_detector"],
+                                      selected_fas_model=session["fas_model"])
 
         elif request.form.get("stop") == "Stop":
             cap.release()
             cam_on = False
-    return render_phonecamera()
+        
+        return render_phonecamera(selected_face_detector=session["face_detector"],
+                                  selected_fas_model=session["fas_model"])
 
 
 @app.route("/stream", methods=["GET"])
