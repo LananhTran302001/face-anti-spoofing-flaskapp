@@ -9,12 +9,20 @@ from fas.face_detector.retina_face_detector import RetinaFaceDetector
 LWFAS = {
     "large": {
         "config": "fas/configs/celeba-intra/large.py",
-        "weights": "fas/weights/MobileNet3_large.pth.tar",
+        "weights": "fas/weights/celeba/MobileNet3_large.pth.tar",
     },
     "small": {
         "config": "fas/configs/celeba-intra/small.py",
-        "weights": "fas/weights/MobileNet3_small.pth.tar",
+        "weights": "fas/weights/celeba/MobileNet3_small.pth.tar",
     },
+    "large_rf-f12": {
+        "config": "fas/configs/celeba-intra/large.py",
+        "weights": "fas/weights/celeba_rf/MobileNet3_large_rf-f12.pth.tar",
+    },
+    "large_rf-f12-e2": {
+        "config": "fas/configs/celeba-intra/large.py",
+        "weights": "fas/weights/celeba_rf/MobileNet3_large_rf-f12-e2.pth.tar",
+    }
 }
 
 
